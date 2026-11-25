@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "rewriter": {
+      "command": "node",
+      "args": [
+        "${PLUGIN_ROOT}/dist/mcp-server.mjs",
+        "--data-dir",
+        "${PLUGIN_DATA}"
+      ]
+    }
+  }
+}
