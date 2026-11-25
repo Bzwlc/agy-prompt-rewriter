@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Prompt Rewriter Logo">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E1B4B" />
+      <stop offset="100%" stop-color="#312E81" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#A78BFA" />
+    </linearGradient>
+  </defs>
+  <!-- ~10% transparent outer margin (13px inset on 128x128) -->
+  <rect x="13" y="13" width="102" height="102" rx="22" fill="url(#bgGrad)" stroke="#6366F1" stroke-width="2.5" />
+  <!-- Prompt chevron ">" -->
+  <path d="M36 47 L54 64 L36 81" fill="none" stroke="#E0E7FF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Cursor / rewrite underline "_" -->
+  <line x1="60" y1="81" x2="86" y2="81" stroke="#38BDF8" stroke-width="7" stroke-linecap="round" />
+  <!-- Four-point sparkle accent -->
+  <path d="M84 31 L87.5 40.5 L97 44 L87.5 47.5 L84 57 L80.5 47.5 L71 44 L80.5 40.5 Z" fill="url(#accentGrad)" />
+</svg>
