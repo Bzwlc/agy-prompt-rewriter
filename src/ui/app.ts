@@ -26,6 +26,10 @@ const SVG_CHECK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 const SVG_SEND = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>`;
 const SVG_GEAR = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`;
 
+const APP_VERSION = "0.2.0";
+const REPO_URL = "https://github.com/Bzwlc/agy-prompt-rewriter";
+const ISSUES_URL = "https://github.com/Bzwlc/agy-prompt-rewriter/issues";
+
 type AppSurface = "inline" | "global";
 
 function el<K extends keyof HTMLElementTagNameMap>(
@@ -112,7 +116,36 @@ const state: UiState = {
   editingRuleId: null,
 };
 
-const app = new App({ name: "Prompt Rewriter", version: "0.2.0" }, {});
+const app = new App({ name: "Prompt Rewriter", version: APP_VERSION }, {});
+
+async function openExternalUrl(url: string, statusTarget: HTMLElement | null) {
+  try {
+    if (app.getHostCapabilities()?.openLinks) {
+      const res = await app.openLink({ url });
+      if (!res?.isError) return;
+    }
+  } catch {
+    // Fall through to window.open fallback.
+  }
+  const win = window.open(url, "_blank", "noopener,noreferrer");
+  if (!win) {
+    showStatus(statusTarget, `请在浏览器中打开：${url}`, "info");
+  }
+}
+
+function makeExternalLink(
+  attrs: Record<string, string>,
+  children: Array<Node | string>,
+  url: string,
+  statusTarget: HTMLElement | null,
+): HTMLAnchorElement {
+  const link = el("a", { ...attrs, href: url, target: "_blank", rel: "noopener noreferrer" }, children);
+  link.addEventListener("click", (event) => {
+    event.preventDefault();
+    void openExternalUrl(url, statusTarget);
+  });
+  return link;
+}
 
 document.body.innerHTML = "";
 const root = el("div", { class: "app-shell" });
@@ -881,7 +914,34 @@ function mountGlobalSurface(): SurfaceController {
     ruleForm,
   ]);
 
-  settingsScroll.append(engineCardSection, strategySection, rulesSection);
+  const starLink = makeExternalLink(
+    { class: "meta-link", title: "给仓库点个 Star" },
+    ["Star ", el("span", { class: "meta-star", "aria-hidden": "true" }, ["🌟"])],
+    REPO_URL,
+    settingsStatus,
+  );
+  const issueLink = makeExternalLink(
+    { class: "meta-link", title: "遇到问题或有建议？去 GitHub 提 issue" },
+    ["提 issue ", el("span", { class: "meta-arrow", "aria-hidden": "true" }, ["↗"])],
+    ISSUES_URL,
+    settingsStatus,
+  );
+  const versionPill = makeExternalLink(
+    { class: "version-pill", title: REPO_URL },
+    [`v${APP_VERSION}`],
+    REPO_URL,
+    settingsStatus,
+  );
+  const settingsMetaBar = el("div", { class: "settings-meta-bar" }, [
+    el("div", { class: "settings-meta-links" }, [
+      starLink,
+      el("span", { class: "meta-sep", "aria-hidden": "true" }, ["·"]),
+      issueLink,
+    ]),
+    versionPill,
+  ]);
+
+  settingsScroll.append(settingsMetaBar, engineCardSection, strategySection, rulesSection);
   settingsPanel.append(settingsScroll, settingsStatus);
   root.replaceChildren(settingsPanel);
 

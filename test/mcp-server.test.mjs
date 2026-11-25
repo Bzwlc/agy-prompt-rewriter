@@ -222,6 +222,10 @@ test("MCP server: initialize, UI resource, entrypoints, settings persistence, an
     assert.equal(settingsHtmlItem.uri, "ui://prompt-rewriter/settings.html");
     assert.equal(settingsHtmlItem.mimeType, "text/html;profile=mcp-app");
     assert.ok(settingsHtmlItem.text.includes('data-surface="global"'));
+    assert.ok(settingsHtmlItem.text.includes("settings-meta-bar"));
+    assert.ok(settingsHtmlItem.text.includes("version-pill"));
+    assert.ok(settingsHtmlItem.text.includes("https://github.com/Bzwlc/agy-prompt-rewriter"));
+    assert.ok(settingsHtmlItem.text.includes("https://github.com/Bzwlc/agy-prompt-rewriter/issues"));
     assert.ok(settingsHtmlItem.text.includes("mode-guide-toggle"));
     assert.ok(settingsHtmlItem.text.includes("mode-guide-card"));
     assert.ok(/三种改写模式有什么区别|\\u4e09\\u79cd\\u6539\\u5199\\u6a21\\u5f0f/i.test(settingsHtmlItem.text));
