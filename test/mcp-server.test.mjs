@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
+import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -147,6 +148,58 @@ test("unit: parseAgyModelsOutput and sanitizeRewrittenOutput", async () => {
 
     const pureQuestion = "你希望使用哪个库？";
     assert.equal(rulesMod.sanitizeRewrittenOutput(pureQuestion, "导出 Excel"), "导出 Excel");
+
+    // Anthropic native /v1/messages protocol test
+    let receivedPath = "";
+    let receivedHeaders = {};
+    let receivedBody = null;
+    const mockServer = http.createServer((req, res) => {
+      receivedPath = req.url || "";
+      receivedHeaders = req.headers;
+      let raw = "";
+      req.on("data", (chunk) => {
+        raw += chunk.toString("utf8");
+      });
+      req.on("end", () => {
+        receivedBody = JSON.parse(raw);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            id: "msg_test",
+            type: "message",
+            role: "assistant",
+            content: [{ type: "text", text: "重构后的目标与执行步骤" }],
+          }),
+        );
+      });
+    });
+
+    await new Promise((resolve) => mockServer.listen(0, "127.0.0.1", resolve));
+    const addr = mockServer.address();
+    try {
+      const anthropicRes = await enginesMod.runExternalApiRewrite({
+        draft: "帮我优化脚本",
+        systemPrompt: "Rewrite only.",
+        config: {
+          format: "anthropic",
+          baseUrl: `http://127.0.0.1:${addr.port}`,
+          model: "claude-haiku-4-5",
+          apiKey: "sk-ant-test-key",
+          timeoutSec: 10,
+        },
+      });
+      assert.equal(receivedPath, "/v1/messages");
+      assert.equal(receivedHeaders["x-api-key"], "sk-ant-test-key");
+      assert.equal(receivedHeaders["anthropic-version"], "2023-06-01");
+      assert.equal(receivedBody.model, "claude-haiku-4-5");
+      assert.equal(receivedBody.system, "Rewrite only.");
+      assert.equal(receivedBody.max_tokens, 2048);
+      assert.deepEqual(receivedBody.messages, [{ role: "user", content: "帮我优化脚本" }]);
+      assert.equal(anthropicRes.text, "重构后的目标与执行步骤");
+      assert.equal(anthropicRes.engineUsed, "api:claude-haiku-4-5");
+    } finally {
+      await new Promise((resolve) => mockServer.close(resolve));
+    }
   } finally {
     await cleanup();
   }
@@ -163,7 +216,7 @@ test("MCP server: initialize, UI resource, entrypoints, settings persistence, an
       clientInfo: { name: "test-client", version: "1.0.0" },
     });
     assert.equal(init.serverInfo.name, "agy-prompt-rewriter");
-    assert.equal(init.serverInfo.version, "0.2.0");
+    assert.equal(init.serverInfo.version, "0.2.1");
     client.notify("notifications/initialized", {});
 
     const toolsRes = await client.request("tools/list");
@@ -228,6 +281,7 @@ test("MCP server: initialize, UI resource, entrypoints, settings persistence, an
     assert.ok(settingsHtmlItem.text.includes("https://github.com/Bzwlc/agy-prompt-rewriter/issues"));
     assert.ok(settingsHtmlItem.text.includes("mode-guide-toggle"));
     assert.ok(settingsHtmlItem.text.includes("mode-guide-card"));
+    assert.ok(settingsHtmlItem.text.includes('value="anthropic"') || settingsHtmlItem.text.includes("/v1/messages"));
     assert.ok(/三种改写模式有什么区别|\\u4e09\\u79cd\\u6539\\u5199\\u6a21\\u5f0f/i.test(settingsHtmlItem.text));
 
     // Empty {} launch for sidebar global entrypoint
@@ -343,6 +397,20 @@ test("MCP server: initialize, UI resource, entrypoints, settings persistence, an
     assert.equal(envPublic.hasApiKey, true);
     assert.equal(envPublic.apiKeySource, "env");
     assert.ok(!JSON.stringify(envSave).includes("env-secret-value-9999"));
+    // Support anthropic format persistence
+    const anthropicSave = await client.request("tools/call", {
+      name: "app_save_settings",
+      arguments: {
+        settings: {
+          externalApi: {
+            format: "anthropic",
+            baseUrl: "https://api.anthropic.com/v1",
+            model: "claude-haiku-4-5",
+          },
+        },
+      },
+    });
+    assert.equal(anthropicSave.structuredContent.settings.externalApi.format, "anthropic");
   } finally {
     await client.close();
     await fs.rm(dataDir, { recursive: true, force: true });

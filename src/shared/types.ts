@@ -1,7 +1,7 @@
 export type EngineType = "agy-cli" | "external-api" | "host-session";
 export type RewriteMode = "standard" | "intent-first" | "concise";
 export type OutputLanguage = "auto" | "zh-CN" | "en";
-export type ExternalApiFormat = "openai" | "gemini";
+export type ExternalApiFormat = "openai" | "gemini" | "anthropic";
 
 export interface CustomRule {
   id: string;

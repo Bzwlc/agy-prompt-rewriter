@@ -139,7 +139,7 @@ Quick one-line drafts typically lack **Goal, Output Format, and Boundaries**. Se
 
 ## Settings and Routing
 
-Open **Extensions → Prompt Rewriter** in the left sidebar (`open_rewriter` `global` entrypoint) for the dedicated Settings page, persisted to `${PLUGIN_DATA}/settings.json`. The top bar includes `Star 🌟`, `提 issue ↗`, and the `v0.2.0` repository pill.
+Open **Extensions → Prompt Rewriter** in the left sidebar (`open_rewriter` `global` entrypoint) for the dedicated Settings page, persisted to `${PLUGIN_DATA}/settings.json`. The top bar includes `Star 🌟`, `提 issue ↗`, and the `v0.2.1` repository pill.
 
 <p align="center">
   <img src="./docs/images/03-settings.png" alt="Prompt Rewriter sidebar Settings page" width="840">
@@ -149,11 +149,11 @@ Open **Extensions → Prompt Rewriter** in the left sidebar (`open_rewriter` `gl
 
 ### Routing Behavior
 
-| Engine | Best For | Behavior |
-| :--- | :--- | :--- |
-| **`agy-cli`** (Default) | Everyday text drafts | Lists models via `agy models` (default `gemini-3.8-flash-low`) and runs `agy -p` without consuming main-session quota |
-| **`external-api`** | Custom keys / Ollama | Supports OpenAI-compatible and Google Gemini `:generateContent` endpoints with built-in connection test |
-| **`host-session`** | Rich context / visuals | Zero-config direct rewrite using the active conversation model with full chat, image, and `@` attachment awareness |
+| Engine | Typical Latency (Est.) | Best For & Recommendations | Behavior |
+| :--- | :--- | :--- | :--- |
+| **`agy-cli`** (Default) | ~`15–22s` (est., includes ~`10s` CLI cold start) | Zero external key setup while preserving main-session quota/context; if speed matters most for daily use, prefer `external-api` or `host-session` | Lists models via `agy models` (default `gemini-3.8-flash-low`) and spawns `agy -p` in an isolated process per rewrite |
+| **`external-api`** | ~`1–5s` (est., typically `2–4s` on fast non-reasoning models) | **Recommended for fastest daily text rewriting** — lowest latency, stateless, zero extra processes; pick lightweight non-reasoning models (e.g., Flash / Mini / Haiku / DeepSeek Chat) | Direct HTTP call supporting OpenAI-compatible (incl. Ollama / Magpie), Google Gemini `:generateContent`, and Anthropic native `/v1/messages` with built-in connection test |
+| **`host-session`** | ~`3–6s` (est., varies by active session model) | **Recommended when you want fast zero-config rewriting** or when prompts involve images, `@` attachments, or current chat context (uses 1 main-session turn) | Reuses the active conversation model directly with full chat, image, and `@` attachment awareness |
 
 > **Smart Image & Attachment Routing**: `agy-cli` and `external-api` are text-only channels. When a `/prompt-rewriter` message includes uploaded images or `@`-mentioned files/conversations, the skill automatically routes that turn to `host-session` so visuals and context are preserved (clicking `✨` inside the card afterward runs the configured independent engine on the editor text).
 
@@ -164,8 +164,8 @@ Open **Extensions → Prompt Rewriter** in the left sidebar (`open_rewriter` `gl
 | `engine` | `"agy-cli"` | Active engine (`agy-cli` / `external-api` / `host-session`) |
 | `agyModel` | `"gemini-3.8-flash-low"` | Model ID for `agy-cli` (refreshable from Settings) |
 | `agyTimeoutSec` | `30` | CLI timeout in seconds (`5`–`120`) |
-| `externalApi.format` | `"openai"` | Protocol: `openai` (`/chat/completions`) or `gemini` (`:generateContent`) |
-| `externalApi.baseUrl` | `"https://api.openai.com/v1"` | Base URL (e.g., `http://localhost:11434/v1` for Ollama) |
+| `externalApi.format` | `"openai"` | Protocol: `openai` (`/chat/completions`), `gemini` (`:generateContent`), or `anthropic` (`/v1/messages`) |
+| `externalApi.baseUrl` | `"https://api.openai.com/v1"` | Base URL (e.g., `http://localhost:11434/v1` for Ollama, `http://127.0.0.1:3425/v1` for Magpie) |
 | `externalApi.model` | `"gpt-4o-mini"` | External model identifier |
 | `externalApi.apiKey` | `""` | Plaintext key or `env:VAR_NAME` (leave blank for unauthenticated local endpoints) |
 | `externalApi.timeoutSec` | `20` | HTTP timeout in seconds (`5`–`120`) |

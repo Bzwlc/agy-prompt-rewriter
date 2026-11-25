@@ -1,7 +1,7 @@
 {
   "name": "agy-prompt-rewriter",
   "displayName": "Prompt Rewriter",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Interactive MCP App & Skill for Google Antigravity: rewrite rough drafts into clear, structured prompts with an editable panel, icon toolbar, sidebar settings, and 3-engine model routing.",
   "logo": "assets/logo.svg",
   "author": {

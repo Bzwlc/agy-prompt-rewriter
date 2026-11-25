@@ -267,6 +267,17 @@ function extractGeminiText(json: unknown): string {
   return parts.map((p) => (typeof p?.text === "string" ? p.text : "")).join("");
 }
 
+function extractAnthropicText(json: unknown): string {
+  const obj = json as {
+    content?: Array<{ type?: string; text?: string }>;
+  };
+  if (!Array.isArray(obj?.content)) return "";
+  return obj.content
+    .filter((block) => block?.type === "text" && typeof block.text === "string")
+    .map((block) => block.text as string)
+    .join("");
+}
+
 export async function runExternalApiRewrite(params: {
   draft: string;
   systemPrompt: string;
@@ -301,6 +312,23 @@ export async function runExternalApiRewrite(params: {
         systemInstruction: { parts: [{ text: params.systemPrompt }] },
         contents: [{ role: "user", parts: [{ text: params.draft }] }],
         generationConfig: { temperature: 0.3 },
+      };
+    } else if (format === "anthropic") {
+      url = cleanBase.endsWith("/messages")
+        ? cleanBase
+        : cleanBase.endsWith("/v1")
+          ? `${cleanBase}/messages`
+          : `${cleanBase}/v1/messages`;
+      headers["anthropic-version"] = "2023-06-01";
+      if (secret) {
+        headers["x-api-key"] = secret;
+      }
+      body = {
+        model: model.trim(),
+        max_tokens: 2048,
+        system: params.systemPrompt,
+        messages: [{ role: "user", content: params.draft }],
+        temperature: 0.3,
       };
     } else {
       url = cleanBase.endsWith("/chat/completions") ? cleanBase : `${cleanBase}/chat/completions`;
@@ -337,7 +365,12 @@ export async function runExternalApiRewrite(params: {
     }
 
     const json = JSON.parse(rawBody) as unknown;
-    const rawText = format === "gemini" ? extractGeminiText(json) : extractOpenAiText(json);
+    const rawText =
+      format === "gemini"
+        ? extractGeminiText(json)
+        : format === "anthropic"
+          ? extractAnthropicText(json)
+          : extractOpenAiText(json);
     if (!rawText.trim()) {
       throw new Error("外接 API 返回内容为空");
     }

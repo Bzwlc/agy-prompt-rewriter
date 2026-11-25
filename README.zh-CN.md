@@ -149,11 +149,11 @@ agy plugin validate --strict "$env:USERPROFILE\.gemini\config\plugins\agy-prompt
 
 ### 路由机制
 
-| 引擎 | 适用场景 | 行为说明 |
-| :--- | :--- | :--- |
-| **`agy-cli`（默认）** | 日常纯文本改写 | 通过 `agy models` 读取可用模型（默认 `gemini-3.8-flash-low`），调用 `agy -p` 独立改写，不占主会话额度 |
-| **`external-api`** | 自带 Key / 本地模型 | 支持 OpenAI 兼容接口（含 Ollama）与 Google Gemini `:generateContent`，支持在线「测试连接」 |
-| **`host-session`** | 强上下文 / 看图看附件 | 零配置直接用当前对话模型改写，可读取当前聊天历史、上传图片与 `@` 引用文件 |
+| 引擎 | 大概耗时（估算） | 适用场景与使用建议 | 行为说明 |
+| :--- | :--- | :--- | :--- |
+| **`agy-cli`（默认）** | 约 `15–22s`（估算，含约 `10s` CLI 冷启动） | 不想配外部 Key 且不想消耗主会话高阶模型额度/上下文时使用；若日常追求更低延迟，建议切到 `external-api` 或 `host-session` | 通过 `agy models` 读取可用模型（默认 `gemini-3.8-flash-low`），每次独立调用 `agy -p` 改写，完全隔离主会话 |
+| **`external-api`** | 约 `1–5s`（估算，轻量非思考模型常见 `2–4s`） | **追求极速与高频日常改写首选**——无进程冷启动、无上下文串味；建议选非深度思考的轻量模型（如 Flash / Mini / Haiku / DeepSeek Chat） | 直连 HTTP 接口，支持 OpenAI 兼容（含 Ollama / Magpie）、Google Gemini `:generateContent` 与 Anthropic 原生 `/v1/messages`，支持在线「测试连接」 |
+| **`host-session`** | 约 `3–6s`（估算，视当前会话模型而定） | **免配 Key 又希望响应快**，或草稿附带图片、`@` 附件与强上下文依赖时推荐（会消耗主会话 1 轮上下文与额度） | 零配置直接复用当前对话模型改写，可读取当前聊天历史、上传图片与 `@` 引用文件 |
 
 > **图片与附件智能路由**：当 `/prompt-rewriter` 消息附带上传图片或 `@` 引用附件时，为避免纯文本独立通道丢失视觉与上下文信息，Skill 会自动将该次改写交由 `host-session` 直接处理；卡片内点 `✨` 重跑则继续使用当前设置的独立引擎处理文本框内容。
 
@@ -164,8 +164,8 @@ agy plugin validate --strict "$env:USERPROFILE\.gemini\config\plugins\agy-prompt
 | `engine` | `"agy-cli"` | 改写引擎：`agy-cli` / `external-api` / `host-session` |
 | `agyModel` | `"gemini-3.8-flash-low"` | `agy-cli` 使用的模型 ID（支持一键刷新） |
 | `agyTimeoutSec` | `30` | `agy-cli` 超时秒数（`5`–`120`） |
-| `externalApi.format` | `"openai"` | 协议：`openai`（`/chat/completions`）或 `gemini`（`:generateContent`） |
-| `externalApi.baseUrl` | `"https://api.openai.com/v1"` | 接口地址（Ollama 可填 `http://localhost:11434/v1`） |
+| `externalApi.format` | `"openai"` | 协议：`openai`（`/chat/completions`）、`gemini`（`:generateContent`）或 `anthropic`（`/v1/messages`） |
+| `externalApi.baseUrl` | `"https://api.openai.com/v1"` | 接口地址（Ollama 可填 `http://localhost:11434/v1`，Magpie 可填 `http://127.0.0.1:3425/v1`） |
 | `externalApi.model` | `"gpt-4o-mini"` | 外接模型名称 |
 | `externalApi.apiKey` | `""` | 明文密钥或 `env:变量名`（本地免鉴权可留空） |
 | `externalApi.timeoutSec` | `20` | 请求超时秒数（`5`–`120`） |

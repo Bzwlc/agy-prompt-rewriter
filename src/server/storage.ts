@@ -18,7 +18,7 @@ import {
 const VALID_ENGINES = new Set<EngineType>(["agy-cli", "external-api", "host-session"]);
 const VALID_MODES = new Set<RewriteMode>(["standard", "intent-first", "concise"]);
 const VALID_LANGUAGES = new Set<OutputLanguage>(["auto", "zh-CN", "en"]);
-const VALID_FORMATS = new Set<ExternalApiFormat>(["openai", "gemini"]);
+const VALID_FORMATS = new Set<ExternalApiFormat>(["openai", "gemini", "anthropic"]);
 
 export function resolveDefaultDataDir(): string {
   const home = os.homedir();

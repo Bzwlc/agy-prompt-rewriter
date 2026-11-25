@@ -133,7 +133,7 @@ var DEFAULT_SETTINGS = {
 var VALID_ENGINES = /* @__PURE__ */ new Set(["agy-cli", "external-api", "host-session"]);
 var VALID_MODES = /* @__PURE__ */ new Set(["standard", "intent-first", "concise"]);
 var VALID_LANGUAGES = /* @__PURE__ */ new Set(["auto", "zh-CN", "en"]);
-var VALID_FORMATS = /* @__PURE__ */ new Set(["openai", "gemini"]);
+var VALID_FORMATS = /* @__PURE__ */ new Set(["openai", "gemini", "anthropic"]);
 function resolveDefaultDataDir() {
   const home = os.homedir();
   return path.join(home, ".gemini", "cache", "agy-prompt-rewriter");
@@ -514,6 +514,11 @@ function extractGeminiText(json) {
   if (!Array.isArray(parts)) return "";
   return parts.map((p) => typeof p?.text === "string" ? p.text : "").join("");
 }
+function extractAnthropicText(json) {
+  const obj = json;
+  if (!Array.isArray(obj?.content)) return "";
+  return obj.content.filter((block) => block?.type === "text" && typeof block.text === "string").map((block) => block.text).join("");
+}
 async function runExternalApiRewrite(params) {
   const started = Date.now();
   const { format, baseUrl, model, timeoutSec } = params.config;
@@ -541,6 +546,19 @@ async function runExternalApiRewrite(params) {
         systemInstruction: { parts: [{ text: params.systemPrompt }] },
         contents: [{ role: "user", parts: [{ text: params.draft }] }],
         generationConfig: { temperature: 0.3 }
+      };
+    } else if (format === "anthropic") {
+      url = cleanBase.endsWith("/messages") ? cleanBase : cleanBase.endsWith("/v1") ? `${cleanBase}/messages` : `${cleanBase}/v1/messages`;
+      headers["anthropic-version"] = "2023-06-01";
+      if (secret) {
+        headers["x-api-key"] = secret;
+      }
+      body = {
+        model: model.trim(),
+        max_tokens: 2048,
+        system: params.systemPrompt,
+        messages: [{ role: "user", content: params.draft }],
+        temperature: 0.3
       };
     } else {
       url = cleanBase.endsWith("/chat/completions") ? cleanBase : `${cleanBase}/chat/completions`;
@@ -573,7 +591,7 @@ async function runExternalApiRewrite(params) {
       throw new Error(`HTTP ${response.status}: ${redactSecret(detail, secret)}`);
     }
     const json = JSON.parse(rawBody);
-    const rawText = format === "gemini" ? extractGeminiText(json) : extractOpenAiText(json);
+    const rawText = format === "gemini" ? extractGeminiText(json) : format === "anthropic" ? extractAnthropicText(json) : extractOpenAiText(json);
     if (!rawText.trim()) {
       throw new Error("\u5916\u63A5 API \u8FD4\u56DE\u5185\u5BB9\u4E3A\u7A7A");
     }
@@ -645,7 +663,7 @@ var APP_URI = "ui://prompt-rewriter/app.html";
 var SETTINGS_URI = "ui://prompt-rewriter/settings.html";
 var APP_MIME_TYPE = "text/html;profile=mcp-app";
 var MAX_FRAME_BYTES = 64 * 1024 * 1024;
-var SERVER_INFO = { name: "agy-prompt-rewriter", version: "0.2.0" };
+var SERVER_INFO = { name: "agy-prompt-rewriter", version: "0.2.1" };
 var __dirname = path3.dirname(fileURLToPath(import.meta.url));
 function parseCliArgs(argv) {
   let dataDir = process.env.AGY_REWRITER_DATA_DIR?.trim() || "";

@@ -26,7 +26,7 @@ const SVG_CHECK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 const SVG_SEND = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>`;
 const SVG_GEAR = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`;
 
-const APP_VERSION = "0.2.0";
+const APP_VERSION = "0.2.1";
 const REPO_URL = "https://github.com/Bzwlc/agy-prompt-rewriter";
 const ISSUES_URL = "https://github.com/Bzwlc/agy-prompt-rewriter/issues";
 
@@ -731,9 +731,14 @@ function mountGlobalSurface(): SurfaceController {
   const apiFormatSelect = el("select", { class: "select" }, [
     el("option", { value: "openai" }, ["OpenAI 兼容 (/chat/completions)"]),
     el("option", { value: "gemini" }, ["Google Gemini (:generateContent)"]),
+    el("option", { value: "anthropic" }, ["Anthropic 原生 (/v1/messages)"]),
   ]);
   const apiBaseInput = el("input", { class: "input", type: "text", placeholder: "https://api.openai.com/v1" });
-  const apiModelInput = el("input", { class: "input", type: "text", placeholder: "gpt-4o-mini / gemini-2.5-flash" });
+  const apiModelInput = el("input", {
+    class: "input",
+    type: "text",
+    placeholder: "gpt-4o-mini / gemini-2.5-flash / claude-haiku-4-5",
+  });
   const apiKeyInput = el("input", {
     class: "input",
     type: "password",
@@ -1007,15 +1012,13 @@ function mountGlobalSurface(): SurfaceController {
     }
 
     apiFormatSelect.value = s.externalApi.format;
+    updateApiFormatPlaceholders(s.externalApi.format, s.externalApi.hasApiKey, s.externalApi.apiKeyMasked);
     apiBaseInput.value = s.externalApi.baseUrl;
     apiModelInput.value = s.externalApi.model;
     apiKeyInput.value = s.externalApi.apiKeySource === "env" ? s.externalApi.apiKeyMasked : "";
-    apiKeyInput.placeholder = s.externalApi.hasApiKey
-      ? `已保存: ${s.externalApi.apiKeyMasked}（留空保持不变，或输入 env:变量名）`
-      : "输入 API Key，或填 env:OPENAI_API_KEY";
     apiKeyHint.textContent = s.externalApi.hasApiKey
       ? `当前凭据来源：${s.externalApi.apiKeySource === "env" ? "环境变量" : "本机隔离配置"} (${s.externalApi.apiKeyMasked})`
-      : "未设置 API Key（本地 Ollama 等免鉴权服务可留空）";
+      : "未设置 API Key（本地 Ollama / Magpie 等免鉴权服务可留空）";
     apiTimeoutInput.value = String(s.externalApi.timeoutSec);
 
     defaultModeSelect.value = s.defaultMode;
@@ -1047,6 +1050,36 @@ function mountGlobalSurface(): SurfaceController {
     }
     return patch;
   }
+
+  function updateApiFormatPlaceholders(
+    format: ExternalApiFormat,
+    hasApiKey = Boolean(state.settings?.externalApi.hasApiKey),
+    apiKeyMasked = state.settings?.externalApi.apiKeyMasked || "",
+  ) {
+    if (format === "anthropic") {
+      apiBaseInput.placeholder = "https://api.anthropic.com/v1";
+      apiModelInput.placeholder = "claude-haiku-4-5 / claude-sonnet-4-5";
+      apiKeyInput.placeholder = hasApiKey
+        ? `已保存: ${apiKeyMasked}（留空保持不变，或输入 env:ANTHROPIC_API_KEY）`
+        : "输入 API Key，或填 env:ANTHROPIC_API_KEY";
+    } else if (format === "gemini") {
+      apiBaseInput.placeholder = "https://generativelanguage.googleapis.com/v1beta";
+      apiModelInput.placeholder = "gemini-2.5-flash";
+      apiKeyInput.placeholder = hasApiKey
+        ? `已保存: ${apiKeyMasked}（留空保持不变，或输入 env:GEMINI_API_KEY）`
+        : "输入 API Key，或填 env:GEMINI_API_KEY";
+    } else {
+      apiBaseInput.placeholder = "https://api.openai.com/v1";
+      apiModelInput.placeholder = "gpt-4o-mini / deepseek-chat";
+      apiKeyInput.placeholder = hasApiKey
+        ? `已保存: ${apiKeyMasked}（留空保持不变，或输入 env:OPENAI_API_KEY）`
+        : "输入 API Key，或填 env:OPENAI_API_KEY";
+    }
+  }
+
+  apiFormatSelect.addEventListener("change", () => {
+    updateApiFormatPlaceholders(apiFormatSelect.value as ExternalApiFormat);
+  });
 
   defaultModeSelect.addEventListener("change", () => {
     void savePatch({ defaultMode: defaultModeSelect.value as RewriteMode }, settingsStatus);

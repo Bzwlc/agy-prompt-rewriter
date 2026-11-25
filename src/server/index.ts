@@ -21,7 +21,7 @@ const APP_URI = "ui://prompt-rewriter/app.html";
 const SETTINGS_URI = "ui://prompt-rewriter/settings.html";
 const APP_MIME_TYPE = "text/html;profile=mcp-app";
 const MAX_FRAME_BYTES = 64 * 1024 * 1024;
-const SERVER_INFO = { name: "agy-prompt-rewriter", version: "0.2.0" };
+const SERVER_INFO = { name: "agy-prompt-rewriter", version: "0.2.1" };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
